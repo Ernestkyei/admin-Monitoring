@@ -1,0 +1,268 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+function Emails() {
+  const navigate = useNavigate();
+
+  const emails = [
+    {
+      id: "email-1",
+      sender: "Customer",
+      email: "customer@example.com",
+      subject: "Inquiry About 3 Bedroom Property",
+      classification: "IN_REMIT",
+      confidence: 97,
+      decision: "AUTOMATE",
+    },
+    {
+      id: "email-2",
+      sender: "GitHub",
+      email: "noreply@github.com",
+      subject: "Thanks for your interest in GitHub Universe 2026!",
+      classification: "OUT_OF_REMIT",
+      confidence: 98,
+      decision: "NO_ACTION",
+    },
+    {
+      id: "email-3",
+      sender: "Customer",
+      email: "customer@example.com",
+      subject: "Refund Request for Property Payment",
+      classification: "NEEDS_REVIEW",
+      confidence: 85,
+      decision: "ESCALATE",
+    },
+    {
+      id: "email-4",
+      sender: "Customer",
+      email: "customer@example.com",
+      subject: "Property Viewing Request for Saturday",
+      classification: "IN_REMIT",
+      confidence: 94,
+      decision: "AUTOMATE",
+    },
+    {
+      id: "email-5",
+      sender: "Supplier",
+      email: "sales@builder.com",
+      subject: "Updated Property Marketing Materials",
+      classification: "OUT_OF_REMIT",
+      confidence: 96,
+      decision: "NO_ACTION",
+    },
+  ];
+
+  const rowsPerPage = 15;
+
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.ceil(emails.length / rowsPerPage);
+
+  const startIndex = (currentPage - 1) * rowsPerPage;
+
+  const visibleEmails = emails.slice(
+    startIndex,
+    startIndex + rowsPerPage
+  );
+
+  const goToPreviousPage = () => {
+    setCurrentPage((page) => Math.max(page - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage((page) => Math.min(page + 1, totalPages));
+  };
+
+  const firstRecord =
+    emails.length === 0 ? 0 : startIndex + 1;
+
+  const lastRecord = Math.min(
+    startIndex + rowsPerPage,
+    emails.length
+  );
+
+  return (
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Processed Emails
+        </h1>
+
+        <p className="mt-1 text-sm text-gray-500">
+          View and monitor emails processed by the AI Email Agent
+        </p>
+      </div>
+
+      {/* Email Table */}
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="min-w-full">
+            <thead>
+              <tr className="border-b border-gray-200 bg-gray-50">
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Sender
+                </th>
+
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Email
+                </th>
+
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Subject
+                </th>
+
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Classification
+                </th>
+
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Confidence
+                </th>
+
+                <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                  Decision
+                </th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-100">
+              {visibleEmails.length > 0 ? (
+                visibleEmails.map((email) => (
+                  <tr
+                    key={email.id}
+                    onClick={() =>
+                      navigate(`/emails/${email.id}`)
+                    }
+                    className="cursor-pointer transition hover:bg-gray-50"
+                  >
+                    <td className="whitespace-nowrap px-6 py-5 text-sm font-medium text-gray-900">
+                      {email.sender}
+                    </td>
+
+                    <td className="whitespace-nowrap px-6 py-5 text-sm text-gray-600">
+                      {email.email}
+                    </td>
+
+                    <td className="max-w-xs px-6 py-5 text-sm text-gray-900">
+                      <div className="truncate">
+                        {email.subject}
+                      </div>
+                    </td>
+
+                    <td className="whitespace-nowrap px-6 py-5">
+                      <ClassificationBadge
+                        classification={email.classification}
+                      />
+                    </td>
+
+                    <td className="whitespace-nowrap px-6 py-5 text-sm font-medium text-gray-900">
+                      {email.confidence}%
+                    </td>
+
+                    <td className="whitespace-nowrap px-6 py-5">
+                      <DecisionBadge
+                        decision={email.decision}
+                      />
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-12 text-center text-sm text-gray-500"
+                  >
+                    No processed emails found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="flex flex-col gap-4 border-t border-gray-200 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-gray-500">
+            Showing{" "}
+            <span className="font-medium text-gray-700">
+              {firstRecord}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-gray-700">
+              {lastRecord}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-gray-700">
+              {emails.length}
+            </span>{" "}
+            emails
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={goToPreviousPage}
+              disabled={currentPage === 1}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Previous
+            </button>
+
+            <span className="px-3 text-sm text-gray-500">
+              Page {currentPage} of {totalPages || 1}
+            </span>
+
+            <button
+              type="button"
+              onClick={goToNextPage}
+              disabled={currentPage === totalPages}
+              className="rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClassificationBadge({ classification }) {
+  const styles = {
+    IN_REMIT: "bg-green-100 text-green-700",
+    OUT_OF_REMIT: "bg-gray-100 text-gray-600",
+    NEEDS_REVIEW: "bg-yellow-100 text-yellow-700",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+        styles[classification] || "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {classification}
+    </span>
+  );
+}
+
+function DecisionBadge({ decision }) {
+  const styles = {
+    AUTOMATE: "bg-blue-100 text-blue-700",
+    NO_ACTION: "bg-gray-100 text-gray-600",
+    ESCALATE: "bg-red-100 text-red-700",
+  };
+
+  return (
+    <span
+      className={`inline-flex rounded-full px-3 py-1 text-xs font-medium ${
+        styles[decision] || "bg-gray-100 text-gray-600"
+      }`}
+    >
+      {decision}
+    </span>
+  );
+}
+
+export default Emails;
+
