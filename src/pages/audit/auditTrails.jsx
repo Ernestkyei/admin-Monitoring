@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   ClipboardList,
@@ -10,105 +10,47 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+import { getAuditLogs } from "../../endpoints/audit";
+
 function AuditTrails() {
-  const auditRecords = [
-    {
-      id: 1,
-      timestamp: "Sep 3, 2026 • 10:43 AM",
-      action: "Response Sent",
-      type: "RESPONSE",
-      description: "Automated response successfully sent to customer",
-      subject: "Inquiry About 3 Bedroom Property",
-      status: "SUCCESS",
-    },
-    {
-      id: 2,
-      timestamp: "Sep 3, 2026 • 10:42 AM",
-      action: "Automated Decision",
-      type: "DECISION",
-      description: "Email approved for automated processing",
-      subject: "Inquiry About 3 Bedroom Property",
-      status: "AUTOMATE",
-    },
-    {
-      id: 3,
-      timestamp: "Sep 3, 2026 • 10:42 AM",
-      action: "AI Classification",
-      type: "AI",
-      description: "Email classified as IN_REMIT with 97% confidence",
-      subject: "Inquiry About 3 Bedroom Property",
-      status: "IN_REMIT",
-    },
-    {
-      id: 4,
-      timestamp: "Sep 3, 2026 • 10:42 AM",
-      action: "Email Received",
-      type: "EMAIL",
-      description: "New email received from customer@example.com",
-      subject: "Inquiry About 3 Bedroom Property",
-      status: "RECEIVED",
-    },
-    {
-      id: 5,
-      timestamp: "Sep 3, 2026 • 10:35 AM",
-      action: "No Action",
-      type: "DECISION",
-      description:
-        "No automated response sent because email is outside company remit",
-      subject: "Thanks for your interest in GitHub Universe 2026!",
-      status: "NO_ACTION",
-    },
-    {
-      id: 6,
-      timestamp: "Sep 3, 2026 • 10:35 AM",
-      action: "AI Classification",
-      type: "AI",
-      description: "Email classified as OUT_OF_REMIT with 98% confidence",
-      subject: "Thanks for your interest in GitHub Universe 2026!",
-      status: "OUT_OF_REMIT",
-    },
-    {
-      id: 7,
-      timestamp: "Sep 3, 2026 • 10:35 AM",
-      action: "Email Received",
-      type: "EMAIL",
-      description: "New email received from noreply@github.com",
-      subject: "Thanks for your interest in GitHub Universe 2026!",
-      status: "RECEIVED",
-    },
-    {
-      id: 8,
-      timestamp: "Sep 3, 2026 • 10:28 AM",
-      action: "Review Case Created",
-      type: "REVIEW",
-      description:
-        "Human review required. Review case created successfully",
-      subject: "Refund Request for Property Payment",
-      status: "OPEN",
-    },
-    {
-      id: 9,
-      timestamp: "Sep 3, 2026 • 10:28 AM",
-      action: "AI Classification",
-      type: "AI",
-      description: "Email classified as NEEDS_REVIEW with 85% confidence",
-      subject: "Refund Request for Property Payment",
-      status: "NEEDS_REVIEW",
-    },
-    {
-      id: 10,
-      timestamp: "Sep 3, 2026 • 10:28 AM",
-      action: "Email Received",
-      type: "EMAIL",
-      description: "New email received from customer@example.com",
-      subject: "Refund Request for Property Payment",
-      status: "RECEIVED",
-    },
-  ];
+  const [auditRecords, setAuditRecords] = useState([]);
+
+  const [summary, setSummary] = useState({
+    total_events: 0,
+    ai_decisions: 0,
+    responses_sent: 0,
+    review_cases: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const recordsPerPage = 5;
 
-  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    const loadAuditLogs = async () => {
+      try {
+        const data = await getAuditLogs();
+
+        setAuditRecords(data.auditLogs || []);
+
+        setSummary(
+          data.summary || {
+            total_events: 0,
+            ai_decisions: 0,
+            responses_sent: 0,
+            review_cases: 0,
+          }
+        );
+      } catch (error) {
+        console.error("Error loading audit logs:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadAuditLogs();
+  }, []);
 
   const totalPages = Math.ceil(
     auditRecords.length / recordsPerPage
@@ -156,6 +98,7 @@ function AuditTrails() {
 
       case "NEEDS_REVIEW":
       case "OPEN":
+      case "ESCALATE":
         return "bg-yellow-100 text-yellow-700";
 
       case "RECEIVED":
@@ -166,6 +109,149 @@ function AuditTrails() {
     }
   };
 
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return "-";
+
+    return new Date(timestamp).toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+  };
+
+  const formatAuditRecord = (record) => {
+    let details = {};
+
+    try {
+      details =
+        typeof record.details === "string"
+          ? JSON.parse(record.details)
+          : record.details || {};
+    } catch (error) {
+      console.error(
+        "Error parsing audit details:",
+        error
+      );
+
+      details = {};
+    }
+
+    let action;
+    let type = "SYSTEM";
+    let description;
+    let status;
+
+    switch (record.event) {
+      case "EMAIL_RECEIVED": {
+        action = "Email Received";
+        type = "EMAIL";
+        description = `New email received from ${
+          record.sender_email || "customer"
+        }`;
+        status = "RECEIVED";
+        break;
+      }
+
+      case "EMAIL_CLASSIFIED": {
+        action = "AI Classification";
+        type = "AI";
+
+        const classification =
+          details.classification || "UNKNOWN";
+
+        const confidence =
+          details.confidence !== undefined
+            ? Math.round(details.confidence * 100)
+            : 0;
+
+        description = `Email classified as ${classification} with ${confidence}% confidence`;
+
+        status = classification;
+        break;
+      }
+
+      case "DECISION_MADE": {
+        type = "DECISION";
+
+        if (details.decision === "AUTOMATE") {
+          action = "Automated Decision";
+          description =
+            "Email approved for automated processing";
+          status = "AUTOMATE";
+        } else if (details.decision === "NO_ACTION") {
+          action = "No Action";
+          description =
+            "No automated response sent because email is outside company remit";
+          status = "NO_ACTION";
+        } else if (details.decision === "ESCALATE") {
+          action = "Escalated";
+          description =
+            "Email requires human review";
+          status = "ESCALATE";
+        } else {
+          action = "Decision Made";
+          description =
+            details.reason || "Decision recorded";
+          status = details.decision || "DECISION";
+        }
+
+        break;
+      }
+
+      case "RESPONSE_GENERATED": {
+        action = "Response Generated";
+        type = "RESPONSE";
+        description =
+          "Automated response generated successfully";
+        status = "SUCCESS";
+        break;
+      }
+
+      case "HUMAN_REVIEW_REQUIRED": {
+        action = "Review Case Created";
+        type = "REVIEW";
+        description =
+          "Human review required. Review case created successfully";
+        status = "OPEN";
+        break;
+      }
+
+      case "NO_ACTION_REQUIRED": {
+        action = "No Action";
+        type = "DECISION";
+        description =
+          details.reason ||
+          "No automated response required";
+        status = "NO_ACTION";
+        break;
+      }
+
+      default: {
+        action = record.event || "System Activity";
+        description =
+          details.reason ||
+          details.message ||
+          "System activity recorded";
+        status = record.event || "SYSTEM";
+        break;
+      }
+    }
+
+    return {
+      ...record,
+      action,
+      type,
+      description,
+      status,
+    };
+  };
+
+  const formattedRecords = currentRecords.map(
+    formatAuditRecord
+  );
+
   return (
     <div className="space-y-8">
       {/* Page Header */}
@@ -175,8 +261,8 @@ function AuditTrails() {
         </h1>
 
         <p className="mt-1 text-sm text-gray-500">
-          Monitor system activity and track important actions performed by
-          the AI Email Agent.
+          Monitor system activity and track important actions
+          performed by the AI Email Agent.
         </p>
       </div>
 
@@ -188,7 +274,7 @@ function AuditTrails() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-gray-900">
-            {auditRecords.length}
+            {loading ? "..." : summary.total_events}
           </p>
 
           <p className="mt-1 text-xs text-gray-500">
@@ -202,7 +288,7 @@ function AuditTrails() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-gray-900">
-            3
+            {loading ? "..." : summary.ai_decisions}
           </p>
 
           <p className="mt-1 text-xs text-gray-500">
@@ -216,7 +302,7 @@ function AuditTrails() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-gray-900">
-            1
+            {loading ? "..." : summary.responses_sent}
           </p>
 
           <p className="mt-1 text-xs text-gray-500">
@@ -230,7 +316,7 @@ function AuditTrails() {
           </p>
 
           <p className="mt-2 text-3xl font-bold text-gray-900">
-            1
+            {loading ? "..." : summary.review_cases}
           </p>
 
           <p className="mt-1 text-xs text-gray-500">
@@ -293,62 +379,84 @@ function AuditTrails() {
             </thead>
 
             <tbody className="divide-y divide-gray-100">
-              {currentRecords.map((record) => (
-                <tr
-                  key={record.id}
-                  className="transition hover:bg-gray-50"
-                >
-                  {/* Timestamp */}
-                  <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                    {record.timestamp}
-                  </td>
-
-                  {/* Action */}
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
-                        {getTypeIcon(record.type)}
-                      </div>
-
-                      <span className="text-sm font-medium text-gray-900">
-                        {record.action}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Type */}
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                      {record.type}
-                    </span>
-                  </td>
-
-                  {/* Description */}
-                  <td className="min-w-[280px] px-6 py-4">
-                    <p className="text-sm text-gray-600">
-                      {record.description}
-                    </p>
-                  </td>
-
-                  {/* Subject */}
-                  <td className="min-w-[260px] px-6 py-4">
-                    <p className="text-sm font-medium text-gray-800">
-                      {record.subject}
-                    </p>
-                  </td>
-
-                  {/* Status */}
-                  <td className="whitespace-nowrap px-6 py-4">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
-                        record.status
-                      )}`}
-                    >
-                      {record.status}
-                    </span>
+              {loading ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-10 text-center text-sm text-gray-500"
+                  >
+                    Loading audit activity...
                   </td>
                 </tr>
-              ))}
+              ) : formattedRecords.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-10 text-center text-sm text-gray-500"
+                  >
+                    No audit activity found.
+                  </td>
+                </tr>
+              ) : (
+                formattedRecords.map((record) => (
+                  <tr
+                    key={record.id}
+                    className="transition hover:bg-gray-50"
+                  >
+                    {/* Timestamp */}
+                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
+                      {formatTimestamp(
+                        record.created_at
+                      )}
+                    </td>
+
+                    {/* Action */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100 text-gray-600">
+                          {getTypeIcon(record.type)}
+                        </div>
+
+                        <span className="text-sm font-medium text-gray-900">
+                          {record.action}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Type */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span className="rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
+                        {record.type}
+                      </span>
+                    </td>
+
+                    {/* Description */}
+                    <td className="min-w-[280px] px-6 py-4">
+                      <p className="text-sm text-gray-600">
+                        {record.description}
+                      </p>
+                    </td>
+
+                    {/* Subject */}
+                    <td className="min-w-[260px] px-6 py-4">
+                      <p className="text-sm font-medium text-gray-800">
+                        {record.subject || "-"}
+                      </p>
+                    </td>
+
+                    {/* Status */}
+                    <td className="whitespace-nowrap px-6 py-4">
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
+                          record.status
+                        )}`}
+                      >
+                        {record.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -358,7 +466,9 @@ function AuditTrails() {
           <p className="text-sm text-gray-500">
             Showing{" "}
             <span className="font-medium text-gray-700">
-              {startIndex + 1}
+              {auditRecords.length === 0
+                ? 0
+                : startIndex + 1}
             </span>{" "}
             to{" "}
             <span className="font-medium text-gray-700">
@@ -379,13 +489,14 @@ function AuditTrails() {
             <button
               type="button"
               onClick={() =>
-                setCurrentPage((page) => Math.max(page - 1, 1))
+                setCurrentPage((page) =>
+                  Math.max(page - 1, 1)
+                )
               }
               disabled={currentPage === 1}
               className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <ChevronLeft size={16} />
-
               Previous
             </button>
 
@@ -416,11 +527,13 @@ function AuditTrails() {
                   Math.min(page + 1, totalPages)
                 )
               }
-              disabled={currentPage === totalPages}
+              disabled={
+                totalPages === 0 ||
+                currentPage === totalPages
+              }
               className="flex items-center gap-1 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
               Next
-
               <ChevronRight size={16} />
             </button>
           </div>
