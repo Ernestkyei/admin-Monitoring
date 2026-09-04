@@ -3,17 +3,32 @@ import EmailBarChat from "../../components/EmailBarChat";
 import DecisionPieChart from "../../components/DecisionPieChart";
 
 function Dashboard() {
+  const handleConnectGmail = () => {
+    window.location.href =
+      "http://localhost:5000/api/auth/google";
+  };
+
   return (
     <div className="space-y-8">
       {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Overview
-        </h1>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Overview
+          </h1>
 
-        <p className="mt-1 text-sm text-gray-500">
-          Current activity of the AI Email Agent
-        </p>
+          <p className="mt-1 text-sm text-gray-500">
+            Current activity of the AI Email Agent
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleConnectGmail}
+          className="rounded-lg bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-gray-800"
+        >
+          Connect Gmail
+        </button>
       </div>
 
       {/* Statistics */}

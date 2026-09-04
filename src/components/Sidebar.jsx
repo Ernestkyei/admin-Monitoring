@@ -1,59 +1,77 @@
-import { NavLink } from "react-router-dom";
-
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
   Mail,
   AlertTriangle,
   ClipboardList,
+  LogOut,
+  ShieldCheck,
 } from "lucide-react";
 
-function Sidebar() {
-  const menuItems = [
+import { toast } from "react-toastify";
+
+export default function Sidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("admin");
+
+    toast.success("You have been logged out.");
+
+    navigate("/login");
+  };
+
+  const navigation = [
     {
+      name: "Dashboard",
       path: "/dashboard",
-      label: "Dashboard",
       icon: LayoutDashboard,
     },
     {
+      name: "Emails",
       path: "/emails",
-      label: "Emails",
       icon: Mail,
     },
     {
+      name: "Reviews",
       path: "/reviews",
-      label: "Reviews",
       icon: AlertTriangle,
     },
     {
+      name: "Audit Trails",
       path: "/audit-trails",
-      label: "Audit Trails",
       icon: ClipboardList,
     },
   ];
 
   return (
-    <aside className="flex min-h-screen w-64 flex-col border-r border-gray-200 bg-white">
+    <aside className="w-64 min-h-screen bg-[#14181F] text-white flex flex-col">
       {/* Logo */}
-      <div className="flex h-20 items-center border-b border-gray-200 px-6">
-        <div>
-          <h1 className="text-xl font-bold tracking-wide text-gray-900">
-            SYLPRIN
-          </h1>
+      <div className="h-20 flex items-center px-6 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="h-6 w-6 text-[#B8863B]" />
 
-          <p className="text-xs text-gray-500">
-            ADMIN MONITORING
-          </p>
+          <div>
+            <div className="text-lg font-semibold tracking-wide">
+              SYLPRIN
+            </div>
+
+            <div className="text-[9px] text-[#9AA4B1] tracking-widest">
+              AI EMAIL AGENT
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 px-4 py-6">
-        <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <div className="text-[10px] uppercase tracking-widest text-[#6B7684] font-semibold px-3 mb-3">
           Monitoring
-        </p>
+        </div>
 
         <div className="space-y-1">
-          {menuItems.map((item) => {
+          {navigation.map((item) => {
             const Icon = item.icon;
 
             return (
@@ -61,41 +79,32 @@ function Sidebar() {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition ${
+                  `flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors ${
                     isActive
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                      ? "bg-[#1F3A5F] text-white"
+                      : "text-[#9AA4B1] hover:bg-white/5 hover:text-white"
                   }`
                 }
               >
-                <Icon size={19} strokeWidth={2} />
-
-                <span>{item.label}</span>
+                <Icon className="h-4 w-4" />
+                <span>{item.name}</span>
               </NavLink>
             );
           })}
         </div>
       </nav>
 
-      {/* System Status */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="rounded-lg bg-gray-50 p-3">
-          <div className="flex items-center gap-2">
-            <span className="h-2.5 w-2.5 rounded-full bg-green-500"></span>
-
-            <p className="text-sm font-medium text-gray-800">
-              AI Email Agent
-            </p>
-          </div>
-
-          <p className="mt-1 text-xs text-gray-500">
-            System monitoring active
-          </p>
-        </div>
+      {/* Logout */}
+      <div className="px-4 pb-5">
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm text-[#9AA4B1] hover:bg-red-500/10 hover:text-red-400 transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          <span>Logout</span>
+        </button>
       </div>
     </aside>
   );
 }
-
-export default Sidebar;
-
