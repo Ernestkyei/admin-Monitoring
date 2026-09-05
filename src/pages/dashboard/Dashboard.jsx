@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import StatCard from "../../components/StatCard";
 import EmailBarChat from "../../components/EmailBarChat";
 import DecisionPieChart from "../../components/DecisionPieChart";
-
 import { getDashboard } from "../../endpoints/dashboard";
 
 function Dashboard() {
@@ -14,7 +13,6 @@ function Dashboard() {
     const loadDashboard = async () => {
       try {
         const data = await getDashboard();
-
         setDashboard(data.dashboard);
       } catch (error) {
         console.error("Error loading dashboard:", error);
@@ -27,20 +25,19 @@ function Dashboard() {
   }, []);
 
   return (
-    <div className="space-y-8">
+    <div className="mx-auto w-full max-w-7xl space-y-6 px-3 py-4 sm:space-y-8 sm:px-4 lg:px-6">
       {/* Page heading */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
+      <div className="px-1">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
           Overview
         </h1>
-
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm text-gray-500 sm:text-base">
           Current activity of the AI Email Agent
         </p>
       </div>
 
       {/* Statistics */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Emails"
           value={loading ? "..." : dashboard?.total_emails ?? 0}
@@ -67,9 +64,13 @@ function Dashboard() {
       </div>
 
       {/* Charts */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <EmailBarChat />
-        <DecisionPieChart />
+      <div className="grid gap-4 lg:grid-cols-2 lg:gap-6">
+        <div className="min-w-0">
+          <EmailBarChat />
+        </div>
+        <div className="min-w-0">
+          <DecisionPieChart />
+        </div>
       </div>
     </div>
   );
